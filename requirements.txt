@@ -1,5 +1,5 @@
 aiohttp==3.9.3
-cryptography==3.4.8
+cryptography==37.0.2
 macaddress==2.0.2
 Requests==2.31.0
 validators==0.28.0

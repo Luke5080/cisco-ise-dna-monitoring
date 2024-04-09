@@ -135,7 +135,7 @@ class IseApiController:
     async def get_session_info(self, mac:str, session) -> dict:
         """
         Function to grab session info for each mac associated with the given SSO
-        First checks if there is failures for each record for the MAC
+        Checks if there is failures for each record for the MAC
         if yes, query failure_db for code, cause, resolution
         also extract important info such as timestamp for each session, posture,
         connection type, authentication method, authorisation policy, authentication_policy,
@@ -170,7 +170,6 @@ class IseApiController:
         
         if res["authStatusOutputList"]["authStatusList"]["authStatusElements"]:
             
-            ## All failure IDs are 5-6 digits long
             for element in res["authStatusOutputList"]["authStatusList"]["authStatusElements"]:
                 
                 failure_list = []
@@ -279,6 +278,8 @@ class IseApiController:
                         fail_details = "null"
 
                     if fail_details != "null":  
+
+                        ## All failure IDs are 5-6 digits long
                         find_id = r'^(\d{5,6})'
                     
                         failure_id = str(re.findall(find_id, fail_details)).strip("[").strip("]").strip("'")
@@ -374,7 +375,6 @@ class DnaApiController():
             'accept': 'application/json'
         }
 
-
         async with session.get(url, params={"macAddress": mac}, headers=api_headers, ssl=False) as response:
             try:
                 response.raise_for_status()
@@ -399,7 +399,6 @@ class DnaApiController():
             'content-type': 'application/json',
             'accept': 'application/json'
         }
-
 
         async with session.get(url, params={"macAddress":mac}, headers=api_headers, ssl=False) as response:
 
@@ -707,6 +706,7 @@ async def main():
     print(f"Total time taken: {total:.2f}")
     
     ## api_out can be used as an API response for whatever purpose
+    ## e.g. Flask application
     return api_out
 
 if __name__ == "__main__":

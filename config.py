@@ -55,16 +55,7 @@ def config_env() -> list:
             break
         else:
             print("URL INVALID.")
-    try:
-        ise_url = ise_url.split("/admin")
-
-        ise_url.pop(1)
-
-        ise_url = ise_url[0]
-
-    except IndexError:
-        pass
-
+    
     if ise_url.endswith("/"):
         ise_url = ise_url.rstrip("/")
     
