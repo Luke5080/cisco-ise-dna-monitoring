@@ -5,7 +5,7 @@
 ## Overview: 
 - To be used in environments which use Cisco ISE and Cisco DNA Center in conjunction.  
 
-- This script leverages the ISE REST APIs to gather data on your primary ISE node, format, examine and output it to the end user running the script. This tool is to be used to debug end user connectivity, or to retrieve full and granular logs of a particular user without needing to log into ISE. This script also uses the Cisco DNA Center REST APIs to similarily retrieve granular logs of a user registered on DNAC, and retrieve information regarding devices connected to the network under the given user SSO.  
+- This script leverages the ISE REST APIs to gather data on your primary ISE node, formats, examines and outputs it to the end user running the script. This tool is to be used to debug end user connectivity, or to retrieve full and granular logs of a particular user without needing to log into ISE. This script also uses the Cisco DNA Center REST APIs to similarily retrieve granular logs of a user registered on DNAC, and retrieve information regarding devices connected to the network under the given user SSO.  
 
 - APIs used in this script:
 ```
@@ -24,7 +24,7 @@ DNAC:
 
     `pip3 install -r requirements.txt`  
 
-2. Next, set up your environment for the script to here. In order to do this, you will need the following pieces of information:  
+2. Next, set up your environment for the script to run against. In order to do this, you will need the following pieces of information:  
 - URL of the Cisco ISE node which the data will be extracted from  
 **NOTE: You DO NOT need to appened /admin/API/mnt to the URL**  
 
@@ -44,16 +44,16 @@ At any moment, you can edit the configurations of your environment by running th
 
 `python3 builder.py -e`  
   
-3. Next, create the database where all failure ID's, codes, causes and resolutions will be held. Run the `constuct_db.py` script:  
+3. Next, create the database where all failure IDs, codes, causes and resolutions will be held. Run the `constuct_db.py` script:  
 
 `python3 construct_db.py`
 
-This will have created an SQLite3 database file named `failure_db` which is now present in the repository folder. This will be referenced when `main.py` run and finds a log of a specific user where a failure occurred. The script will refer to `failure_db` to retrieve the code, cause and resolutionof the failure. This script utilises the `FailureReasons` REST API, which collects all errors listed in the ISE Message Catalogue. In order to the most recent errors captured in the Message Catalogue, and to be referenced in the `main.py` script, I suggest setting up a cron job to automate the running of the `failure_db.py` script every 30 minutes, or more/less often depending on the amount of users being captured in ISE daily.
+This will have created an SQLite3 database file named `failure_db` which is now present in the repository folder. This will be referenced when `main.py` run and finds a log of a specific user where a failure occurred. The script will refer to `failure_db` to retrieve the code, cause and resolutionof the failure. This script utilises the `FailureReasons` REST API, which collects all errors listed in the ISE Message Catalogue. In order to get the most recent errors captured in the Message Catalogue, and to be referenced in the `main.py` script, I suggest setting up a cron job to automate the running of the `failure_db.py` script every 30 minutes, or more/less often depending on the amount of users being captured in ISE daily.
 
 4. Next, run the `main.py` script with a user SSO as an argument to retrieve all logs of a specific user from the past 24 hours. The script first retrieves all active sessions registered on your primary Cisco ISE node, and then finds all mac addresses correlated to the SSO. From there, the script retrieves all logs from the past 24 hours for each mac address related to the given SSO, and outputs this information to the user. If a log for a mac address is found to have a wireless connection type, it will be held, and information regarding that MAC, as well as possible issues found, is pulled from Cisco DNA. Run the `main.py` script as follows:  
 `python3 main.py <user sso>`  
 
-For logs found on Cisco ISE, the script will output the information as such:  
+The output of the script will look as follows:   
 ```
 <MAC ADDRESS>
 =============
