@@ -31,7 +31,6 @@ def config_env() -> list:
             except ValueError:
                 print("Please enter a valid choice")
                 
-
         if create_new_env.lower() == "y":
             current_config = f"{working_dir}/env_config.txt"
             current_key = f"{working_dir}/mykey.key"

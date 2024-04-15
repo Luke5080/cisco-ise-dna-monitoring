@@ -62,7 +62,6 @@ configured_ise_url = decrypted_data[0]
 configured_ise_user = decrypted_data[1]
 configured_ise_pwd = decrypted_data[2]
 
-
 configured_dna_url = decrypted_data[3]
 configured_dna_user = decrypted_data[4]
 configured_dna_pwd = decrypted_data[5]
@@ -75,7 +74,6 @@ DNAC_BASE = configured_dna_url
 ISE_BASE = f"{configured_ise_url}/admin/API/mnt"
 
 DB_PATH = f"{working_dir}/failure_db"
-
 
 class IseApiController:
     """Class to create an ISE object and to call functions on that object"""
@@ -111,8 +109,9 @@ class IseApiController:
 
         return res
 
-    def check_macs_in_session(self, all_session: dict, sso: str) -> list:
+    async def check_macs_in_session(self, all_session: dict, sso: str) -> list:
         """Function to grab MACs associated with SSO given"""
+
         mac_list = []
 
         for element in all_session["activeList"]["activeSession"]:
@@ -161,7 +160,6 @@ class IseApiController:
                 print("Could not fulfill request. Error Code 100")
                 return data_found
             
-
         dict_data = xmltodict.parse(content)
 
         json_format = json.dumps(dict_data)
@@ -173,29 +171,6 @@ class IseApiController:
             for element in res["authStatusOutputList"]["authStatusList"]["authStatusElements"]:
                 
                 failure_list = []
-
-                connection_type = ""
-
-                try:
-                    nw_device = element["network_device_name"]
-
-                except KeyError:
-                    nw_device = "null"
-
-                except TypeError:
-                    nw_device = "null"
-
-                if nw_device != "null":
-                    nw_device = str(nw_device).split("-")
-                
-                    if nw_device[2].startswith("WC"):
-                        connection_type = "Wireless"
-
-                    elif nw_device[2].startswith("VA"):
-                        connection_type = "VPN"
-
-                    else:
-                        connection_type = "Wired"
 
                 try:
                     post_status = element["posture_status"]
@@ -214,6 +189,7 @@ class IseApiController:
                 
                 except TypeError:
                     identity_group = "null"
+
                 try:
                     auth_method = element["authentication_method"]
 
@@ -222,6 +198,7 @@ class IseApiController:
 
                 except TypeError:
                     auth_method = "null"
+
                 try:
                     timestamp_one = element["acs_timestamp"]
 
@@ -290,9 +267,8 @@ class IseApiController:
 
                         c.execute(f"SELECT code, cause, resolution from failures where id = {failure_id}")
 
-                        results = c.fetchall()
-
-                        failure_list.append(results)
+                        for info in c.fetchall():
+                            failure_list.append(info)
 
                         c.close()
                         conn.close()
@@ -319,7 +295,6 @@ class IseApiController:
                 data_found[dict_key]["authentication_method"] = auth_method
                 data_found[dict_key]["posture_status"] = post_status
                 data_found[dict_key]["failures"] = failure_list
-                data_found[dict_key]["connection_type"] = connection_type
                 data_found[dict_key]["identity_group"] =  identity_group
 
                 if other_attr != "null":
@@ -361,6 +336,42 @@ class DnaApiController():
         dna_token = token.json()
 
         return dna_token["Token"]
+
+    async def client_details(self, token:str, sso:str) -> list:
+        """Initial Function to obtain MAC address of device connected to wireless"""
+
+        api = "/dna/intent/api/v1/user-enrichment-details"
+
+        api_url = DNAC_BASE + api
+
+        api_headers = {
+            'X-Auth-Token': token,
+            'content-type': 'application/json',
+            'accept': 'application/json',
+            'entity_type': 'network_user_id',
+            'entity_value': sso
+        }
+
+        wireless_macs = []
+
+        async with aiohttp.ClientSession() as session:
+            async with session.get(api_url, headers=api_headers, ssl=False) as response:
+
+                try:
+                    response.raise_for_status()
+                    info_back = await response.json()
+
+                except aiohttp.ClientResponse as err:
+                    return wireless_macs
+                
+        try:
+            wireless_mac = info_back[0]["userDetails"]["hostMac"]
+            wireless_macs.append(wireless_mac)
+
+        except KeyError:
+            pass
+
+        return wireless_macs
 
     async def client_health(self, token:str, mac:str, session) -> dict:
         """
@@ -412,7 +423,6 @@ class DnaApiController():
 
         return content
 
-
 async def process_ise_data(info_gathered: dict) -> None:
     """Function to process ise data and display
     to end user"""
@@ -427,7 +437,6 @@ async def process_ise_data(info_gathered: dict) -> None:
             for element in info_gathered[key]:
                 
                 log_time = info_gathered[key][element]["timestamp"]
-                con_type = info_gathered[key][element]["connection_type"]
                 post_stat = info_gathered[key][element]["posture_status"]
                 id_group = info_gathered[key][element]["identity_group"]
                 ris_policy = info_gathered[key][element]["authorisation_policy"]
@@ -442,7 +451,6 @@ async def process_ise_data(info_gathered: dict) -> None:
                     
                     print(f"Time: {log_time}")
                     print(f"Posture Status: {post_stat}")
-                    print(f"Connection Type: {con_type}")
                     print(f"Identity Group: {id_group}")
                     print(f"Authorisation Policy: {ris_policy}")
                     print(f"Authentication Policy: {cation_policy}")
@@ -454,7 +462,6 @@ async def process_ise_data(info_gathered: dict) -> None:
                 else:  
                     print(f"Time: {log_time}")
                     print(f"Posture Status: {post_stat}")
-                    print(f"Connection Type: {con_type}")
                     print(f"Identity Group: {id_group}")
                     print(f"Authorisation Policy: {ris_policy}")
                     print(f"Authentication Policy: {cation_policy}")
@@ -466,7 +473,7 @@ async def process_dna_data(dna_info: dict, issue_desc: dict) -> None:
     to end user"""
 
     dnac_info = {}
-
+    print("INFO GATHERED ON DNAC:")
     for entry, value in dna_info.items():
 
         print(f"{entry}\n","="*20, "\n")
@@ -526,7 +533,7 @@ async def process_dna_data(dna_info: dict, issue_desc: dict) -> None:
             print(f"Host Type: {host_type}")
             print(f"User ID: {uid}")
             print(f"Identifier: {dnac_identifier}")
-            print(f"Devie Hostname: {dna_hostname}")
+            print(f"Device Hostname: {dna_hostname}")
             print("Device Details:\n","="*10)
             print(f"Host OS: {host_os}, Version: {host_os_ver}")
             print(f"Host SubType: {host_stype}, Firmware Version: {firm_version}")
@@ -600,12 +607,24 @@ async def process_dna_data(dna_info: dict, issue_desc: dict) -> None:
                     item = item.strip(" ").strip("[").strip("{")
                 print(item)
 
+def help_user() -> None:
+    banner = "HOW TO USE THIS SCRIPT"
+    print(banner)
+    print("="*len(banner))
+    print("Please input a username as an argument to the script.")
+    print("e.g. python3 main.py foobar")
+
 async def main():
     """main function"""
 
     start = time.time()
 
-    user_sso = sys.argv[1]
+    if len(sys.argv) == 1:
+        help_user()
+        sys.exit()
+
+    else:
+        user_sso = sys.argv[1]
 
     # Create ISE object
     ise_api = IseApiController(configured_ise_user, configured_ise_pwd)
@@ -622,7 +641,13 @@ async def main():
     token_dna = await t2
     
     # Retrieve all macs related to SSO
-    macs_to_check = ise_api.check_macs_in_session(active_list, user_sso)
+    t3 = asyncio.create_task(ise_api.check_macs_in_session(active_list, user_sso))
+    t4 = asyncio.create_task(dna_api_ob.client_details(token_dna, user_sso))
+
+    await asyncio.gather(t3, t4)
+
+    macs_to_check = await t3
+    wireless_mac_check = await t4
 
     data_gathered = {}
 
@@ -638,14 +663,6 @@ async def main():
 
     for i, mac in enumerate(macs_to_check):
         data_gathered[mac] = data[i]
-    
-    wireless_mac_check = []
-    for key in data_gathered:
-        for element in data_gathered[key]:
-            if data_gathered[key][element]["connection_type"] == "Wireless":
-                wireless_mac_check.append(key)
-
-    wireless_mac_check = list(set(wireless_mac_check))
 
     if len(wireless_mac_check) != 0:
 
@@ -699,7 +716,6 @@ async def main():
         api_out["ise_information"] = data_gathered
 
     api_out = json.dumps(api_out, indent=4)
-
 
     end = time.time()
     total = end - start

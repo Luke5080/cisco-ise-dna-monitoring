@@ -40,9 +40,6 @@ def decrypt_ise() -> str:
     configured_ise_user = decrypted_data[1]
     configured_ise_pwd = decrypted_data[2]
 
-    print(configured_ise_url)
-    print(configured_ise_user)
-    print(configured_ise_pwd)
 
     return configured_ise_url, configured_ise_user, configured_ise_pwd
 
